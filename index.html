@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mr.putra | Link Page</title>
+
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    body{
+      margin:0;
+      font-family:Arial,sans-serif;
+      background: linear-gradient(180deg,#020817 0%, #071229 100%);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      padding: 12px;
+    }
+    .wrap{
+      max-width:420px;
+      width:100%;
+      padding:20px;
+      box-sizing: border-box;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .avatar{
+      width:80px;
+      height:80px;
+      border-radius:12px;
+      object-fit:cover;
+      border:3px solid rgba(255,255,255,0.2);
+      margin-bottom: 12px;
+      background: rgba(0,0,0,0.2);
+    }
+    h1{margin:10px 0 4px}
+    p{margin:0 0 20px;color:#ddd}
+    .link-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      background:rgba(56,45,36,0.95);
+      padding:14px;
+      border-radius:12px;
+      text-decoration:none;
+      color:#d9c8b8;
+      margin-bottom:12px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.4);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      user-select:none;
+    }
+    .link-item:hover{
+      transform:translateY(-2px);
+      box-shadow:0 10px 26px rgba(0,0,0,0.45);
+    }
+    .icon-wrap{
+      width:44px;
+      height:44px;
+      border-radius:10px;
+      background:rgba(0,0,0,0.15);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
+      font-size: 22px;
+      color: #d9c8b8;
+      overflow: hidden;
+    }
+    .icon-img{
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
+      display: block;
+      filter: none;
+    }
+
+    /* Background video behind everything */
+    #bgVideo {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      object-fit: cover;
+      z-index: 0;
+      pointer-events: none;
+      opacity: .8;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .wrap { max-width: 100%; padding: 10px; }
+      .avatar { width: 64px; height: 64px; }
+      .edit-toggle { padding: 10px 14px; gap: 6px; bottom: 12px; right: 12px; }
+      .editor { max-width: 95vw; width: 95vw; max-height: 95vh; }
+      .item-row { grid-template-columns: 56px 1fr auto; }
+      .icon-type-row { grid-template-columns: 120px 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Video -->
+  <video autoplay muted loop id="bgVideo">
+    <source src="api.mp4" type="video/mp4">
+  </video>
+
+  <div class="wrap" align="center">
+    <img class="avatar" id="avatarImg" src="avatar-halaman.jpg" alt="avatar">
+    <h1 id="pageTitle">Mr.putra</h1>
+    <p id="pageSubtitle">Kumpulan Sosial media</p>
+    <div id="linksList"></div>
+  </div>
+
+  
+
+  <script>
+    // =======================
+    // Default items (backward compatible: iconType = 'fa')
+    // =======================
+    const DEFAULT = [
+      {iconType: "fa", iconClass: "fa-brands fa-tiktok", iconUrl: "", text: "TikTok", url: "https://www.tiktok.com/@_jangkrik_01?_t=ZS-8yojMuYRjXO&_r=1"},
+      {iconType: "fa", iconClass: "fa-brands fa-instagram", iconUrl: "", text: "Instagram", url: "https://www.instagram.com/____mr_r_?igsh=cWZ4M3FxdDVsajV0"},
+      {iconType: "fa", iconClass: "fa-brands fa-youtube", iconUrl: "", text: "YouTube", url: "https://youtube.com/@rnote01?si=EbPWpt3hs8l2YJzu"}
+    ];
+
+    // --- Load & Save data from localStorage ---
+    function loadData(){
+      try {
+        const raw = localStorage.getItem("linkpage_data");
+        if(raw) {
+          const parsed = JSON.parse(raw);
+          // Migrasi items lama (yang belum punya iconType/iconUrl)
+          parsed.items = (parsed.items || []).map(it => ({
+            iconType: it.iconType || "fa",
+            iconClass: it.iconClass || "fa-solid fa-link",
+            iconUrl: it.iconUrl || "",
+            text: it.text || "Tombol",
+            url: it.url || "#"
+          }));
+          return parsed;
+        }
+      } catch(e) {}
+      return {
+        title: "Mr.putra",
+        subtitle: "Kumpulan Sosial media",
+        avatar: "avatar-halaman.jpg",
+        items: DEFAULT
+      };
+    }
+    function saveData(state){
+      localStorage.setItem("linkpage_data", JSON.stringify(state));
+    }
+
+    // --- Validation helpers ---
+    function isValidURL(str) {
+      try {
+        const url = new URL(str);
+        return url.protocol === "http:" || url.protocol === "https:";
+      } catch {
+        return false;
+      }
+    }
+    // Deteksi kelas FA minimal: harus ada 'fa-' dan kelas gaya (fa-solid/fa-regular/fa-brands/...)
+    function isValidIconClass(cls) {
+      const s = (cls || "").trim();
+      if(!s) return true;
+      const hasStyle = /\bfa-(solid|regular|brands|light|thin|duotone|sharp)\b/i.test(s) || /\bfa[srldb]\b/.test(s);
+      const hasIcon = /\bfa-[a-z0-9-]+\b/i.test(s.replace(/\bfa-(solid|regular|brands|light|thin|duotone|sharp)\b/ig,'').trim());
+      return hasStyle && hasIcon;
+    }
+
+    // --- Main app state ---
+    let state = loadData();
+
+    // --- Rendering main link list ---
+    function renderList(state){
+      const list = document.getElementById("linksList");
+      list.innerHTML = "";
+      state.items.forEach(it => {
+        const a = document.createElement("a");
+        a.href = it.url || "#";
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.className = "link-item";
+
+        const iconWrap = document.createElement("div");
+        iconWrap.className = "icon-wrap";
+
+        if(it.iconType === "img" && isValidURL(it.iconUrl)) {
+          const img = document.createElement("img");
+          img.src = it.iconUrl;
+          img.alt = "icon";
+          img.className = "icon-img";
+          iconWrap.appendChild(img);
+        } else {
+          const icon = document.createElement("i");
+          icon.className = isValidIconClass(it.iconClass) ? it.iconClass : "fa-solid fa-link";
+          iconWrap.appendChild(icon);
+        }
+
+        a.appendChild(iconWrap);
+        a.appendChild(document.createTextNode(it.text || "Tombol"));
+        list.appendChild(a);
+      });
+    }
+
+    // --- Update main page from state ---
+    function updateMainPage() {
+      document.getElementById("pageTitle").textContent = state.title;
+      document.getElementById("pageSubtitle").textContent = state.subtitle;
+      document.getElementById("avatarImg").src = state.avatar;
+      renderList(state);
+    }
+    updateMainPage();
+
+    </script>
+
+<script>
+// === Auto-select text feature ===
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key.toLowerCase() === 'a') {
+    const el = document.activeElement;
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      e.preventDefault();
+      el.select();
+    }
+  }
+});
+</script>
+</body>
+
+</html>
